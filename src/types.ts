@@ -37,6 +37,10 @@ export interface MarketAsset {
   change24h: number
   currency: string
   updatedAt: string
+  sparkline7d: number[]
+  marketCap: number
+  high24h: number
+  low24h: number
 }
 
 export interface SearchItem {
@@ -45,4 +49,16 @@ export interface SearchItem {
   subtitle: string
   area: WorkspaceArea
   href: string
+}
+
+export interface WeatherSnapshot {
+  city: string
+  country?: string
+  temperature: number
+  apparentTemperature: number
+  humidity: number
+  windSpeed: number
+  weatherCode: number
+  isDay: boolean
+  updatedAt: string
 }
