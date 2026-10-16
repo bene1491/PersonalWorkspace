@@ -1,3 +1,5 @@
+export type AccentId = 'lavender' | 'violet' | 'emerald' | 'coral' | 'rose'
+
 export type WorkspaceArea =
   | 'command-center'
   | 'finance'

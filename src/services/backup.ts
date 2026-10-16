@@ -8,6 +8,7 @@ export const BACKUP_STORAGE_KEYS = [
   'personal-workspace.flashcards.v1',
   'personal-workspace.pomodoro-settings.v1',
   'personal-workspace.theme.v1',
+  'personal-workspace.accent.v1',
   'personal-workspace.location.v1',
   'personal-workspace.compact-mode.v1',
 ] as const

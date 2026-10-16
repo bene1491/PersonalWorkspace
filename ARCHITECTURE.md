@@ -40,7 +40,7 @@ src/
 ├─ index.css                Gesamtes Designsystem (Tokens, Layout, Komponenten-Styles)
 │
 ├─ components/               Geteilte, modul-übergreifende UI-Bausteine
-│  ├─ AppShell.tsx            Sidebar, Topbar, globale Suche (⌘K), Layout-Rahmen
+│  ├─ AppShell.tsx            Sidebar, Topbar, Befehlspalette (⌘K: Suche + Aktionen), Layout-Rahmen
 │  ├─ WorkspaceContext.tsx    React-Context für Aufgaben (einzige global geteilte Domäne)
 │  ├─ ToastContext.tsx        Toast-/Undo-Benachrichtigungssystem (Context + Provider + UI)
 │  ├─ ErrorBoundary.tsx       Fängt Rendering-Fehler einzelner Routen ab
@@ -65,12 +65,13 @@ src/
 │  ├─ weather.ts                Open-Meteo-Adapter (Geocoding + Forecast, Mapping auf WeatherSnapshot)
 │  ├─ currency.ts               Frankfurter.app-Adapter (Wechselkurs-Konvertierung)
 │  ├─ holidays.ts               date.nager.at-Adapter (nächster gesetzlicher Feiertag)
-│  └─ backup.ts                 Sammelt/schreibt alle personal-workspace.*-Storage-Keys als JSON (Export/Import)
+│  ├─ backup.ts                 Sammelt/schreibt alle personal-workspace.*-Storage-Keys als JSON (Export/Import)
+│  └─ searchIndex.ts            Liest Prompts/Songideen/Journal/Karteikarten/Watchlist direkt aus localStorage für die Befehlspalette
 │
 └─ modules/                   Ein Modul pro Hauptbereich der Navigation
    ├─ Dashboard.tsx            Command Center
    ├─ Finance.tsx               Finanzen (Marktübersicht, Watchlist, Journal, Währungsrechner) + CoinDetail
-   ├─ Tasks.tsx                 Aufgaben & Planung (Liste/Woche, Produktivitäts-Chart, Pomodoro-Timer)
+   ├─ Tasks.tsx                 Aufgaben & Planung (Liste/Woche/Kanban-Board, Produktivitäts-Chart, Pomodoro-Timer)
    ├─ MusicStudio.tsx           Music Studio (Songideen, Metronom & Tap-Tempo)
    ├─ Study.tsx                 Uni & Studium (Kurse, Feiertage-Widget, Karteikarten & Lernmodus)
    ├─ Documents.tsx             Dateien & Dokumente
@@ -95,6 +96,8 @@ Jedes Modul lebt in seiner eigenen Datei – das war ursprünglich als `Workspac
 
 **Löschen ist rückgängig machbar.** Jede Lösch-Aktion auf Nutzerdaten (Aufgaben, Watchlist-Einträge, Journal, Songideen, Kategorien, Prompts, Karteikarten) läuft über `useUndoableRemove`: Das Element wird sofort aus dem State entfernt, ein Toast mit „Rückgängig“ bleibt einige Sekunden sichtbar und stellt das Element bei Klick exakt an seiner ursprünglichen Position wieder her. Das ist ein generischer Hook, kein Modul muss eigene Lösch-Bestätigungsdialoge bauen.
 
+**Eine kontrollierte Ausnahme: `searchIndex.ts`.** Damit die Befehlspalette Prompts, Songideen, Journal-Einträge, Karteikarten und Watchlist-Ticker findet, ohne dass jedes dieser Module seinen lokalen State globalisieren muss (was gegen die „einzige geteilte Domäne“-Regel oben verstoßen würde), liest `src/services/searchIndex.ts` deren `localStorage`-Werte direkt und frisch bei jedem Öffnen der Palette. Das ist die einzige Stelle im Code, die `localStorage`-Keys eines anderen Moduls kennt – bewusst zentralisiert, damit kein Modul direkt vom internen Speicherformat eines anderen abhängt.
+
 ## Routing & Code-Splitting
 
 `App.tsx` definiert alle neun Routen plus `/finanzen/:id` für Asset-Details. Nur das Dashboard (Landing-Route `/`) wird eager geladen; alle übrigen Module – inklusive `Tasks`, sobald es Recharts für den Produktivitäts-Chart mitbrachte – laufen per `React.lazy()` plus `<Suspense>`. Das hält den initialen JS-Bundle klein: Recharts, das größte Abhängigkeits-Gewicht, lädt erst beim Besuch von `/finanzen` oder `/aufgaben` und wird dabei als gemeinsamer Chunk zwischen beiden geteilt. Eine `ErrorBoundary` um den Routenbereich fängt Rendering-Fehler einzelner Module ab, ohne die gesamte App abstürzen zu lassen.
@@ -103,9 +106,21 @@ Jedes Modul lebt in seiner eigenen Datei – das war ursprünglich als `Workspac
 
 Dark Mode ist Standard. Theme-Umschaltung setzt `document.documentElement.dataset.theme`; `index.css` definiert alle Farben als CSS-Custom-Properties auf `:root` bzw. `:root[data-theme='light']`, sodass kein Komponenten-Code theme-spezifische Werte kennen muss.
 
+Akzentfarben funktionieren nach demselben Muster: `document.documentElement.dataset.accent` (eine von fünf `AccentId`-Optionen, siehe `src/types.ts`) schaltet zusätzliche `:root[data-accent='…']`-Blöcke frei, die `--accent`, `--accent-strong` und `--accent-rgb` überschreiben. Jede dekorative Tönung im CSS (Hover-Hintergründe, Pill-Hintergründe, Fokus-Ringe) referenziert `rgba(var(--accent-rgb), …)` statt eines fest codierten Farbwerts, damit ein Wechsel der Akzentfarbe konsistent durch die gesamte Oberfläche durchschlägt, ohne jede einzelne Stelle anzufassen.
+
 ## Installierbarkeit (PWA)
 
 `vite-plugin-pwa` generiert bei `npm run build` ein `manifest.webmanifest` und einen Service Worker (`sw.js`), der ausschließlich die eigenen App-Dateien precached (Strategie `generateSW`, `registerType: 'autoUpdate'`). Das App-Icon (`public/app-icon.svg`, als PNG in `public/icons/` für Manifest/`apple-touch-icon` gerendert) greift das bestehende Marken-Symbol aus der Sidebar auf (⌘ auf Akzentfarbe). PWA-Funktionen sind in der Entwicklung (`npm run dev`) bewusst deaktiviert und nur im Produktionsbuild bzw. `npm run preview` aktiv.
+
+## Barrierefreiheit
+
+Einige konkrete, bewusste Entscheidungen statt eines pauschalen Anspruchs:
+
+- **Fokus-Management statt reinem Ein-/Ausblenden.** Die Befehlspalette merkt sich das zuvor fokussierte Element beim Öffnen (vor dem `autoFocus` des Eingabefelds erfasst, nicht danach – sonst würde das Eingabefeld selbst als „letztes Element“ gelten) und gibt den Fokus beim Schließen exakt dorthin zurück. Dasselbe Muster gilt für das mobile Navigationsmenü (Fokus wandert beim Öffnen auf den Schließen-Button, beim Schließen zurück auf den Menü-Button).
+- **Die Befehlspalette ist ein echtes ARIA-Combobox/Listbox-Paar**, nicht nur eine Liste klickbarer `<button>`-Elemente: `role="combobox"` auf dem Eingabefeld, `role="listbox"` auf dem Ergebnisbereich, `role="option"` je Treffer, Pfeiltasten + Enter funktionieren ohne Maus, `aria-activedescendant` hält Screenreader auf dem aktuell markierten Treffer synchron.
+- **Drag-and-drop hat immer eine Tastatur-Alternative.** Das Kanban-Board lässt sich per Maus zwischen Spalten verschieben, aber jede Karte hat zusätzlich reguläre, fokussierbare Pfeil-Buttons für denselben Vorgang – die Funktion hängt nie ausschließlich an einer Drag-Geste.
+- **Kontrastgeprüfte Textfarben.** `--text-muted` (die am häufigsten verwendete Farbe für Bildunterschriften, Zeitstempel, Hilfetext) wurde in beiden Themes gegen WCAG-AA-Normaltext (4,5:1) nachgerechnet und angepasst; die ursprünglichen Werte lagen mit 4,09:1 (Dark) bzw. 3,39:1 (Light) knapp darunter.
+- **Sichtbarer Fokusring überall.** Eine globale `:focus-visible`-Regel deckt interaktive Elemente ab, die keinen eigenen Fokusstil definieren; einzelne Komponenten (Formularfelder, das BPM-Eingabefeld des Metronoms, das zuvor versehentlich jeden Fokusindikator unterdrückte) überschreiben das gezielt mit einer eigenen, stärkeren Variante.
 
 ## Vorbereitete, aber inaktive Integrationen
 
