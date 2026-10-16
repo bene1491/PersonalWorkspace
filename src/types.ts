@@ -20,6 +20,7 @@ export interface Task {
   priority: TaskPriority
   dueDate?: string
   createdAt: string
+  completedAt?: string
 }
 
 export interface JournalEntry {

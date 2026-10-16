@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { ArrowLeft, BookmarkPlus, ExternalLink, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react'
+import { CurrencyConverter } from '../components/CurrencyConverter'
 import { Sparkline } from '../components/Sparkline'
 import { EmptyState, InfoCard, Notice, Pill, SectionHeading } from '../components/ui'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useMarketData } from '../hooks/useMarketData'
+import { useUndoableRemove } from '../hooks/useUndoableRemove'
 import type { JournalEntry } from '../types'
 
 const money = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 })
@@ -21,6 +23,8 @@ export function Finance() {
   const [journalTitle, setJournalTitle] = useState('')
   const [journalBody, setJournalBody] = useState('')
   const [symbol, setSymbol] = useState('')
+  const removeWatchlistItem = useUndoableRemove(watchlist, setWatchlist)
+  const removeJournalEntry = useUndoableRemove(journal, setJournal)
 
   function addWatchlist() {
     const cleaned = symbol.trim().toLocaleUpperCase('de-DE')
@@ -83,14 +87,17 @@ export function Finance() {
           <div className="chart-wrap"><div className="chart-label">Veränderung der abgerufenen Assets · 24 h</div><ResponsiveContainer width="100%" height={180}><BarChart data={data} margin={{ top: 8, right: 4, left: -25, bottom: 0 }}><XAxis dataKey="symbol" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={(value: number) => `${value}%`} /><Tooltip formatter={(value) => { const displayed = Array.isArray(value) ? value[0] : value; return [`${Number(displayed).toFixed(2)} %`, '24 h'] }} cursor={{ fill: 'var(--surface-muted)' }} /><Bar dataKey="change24h" radius={[5, 5, 0, 0]}>{data.map((entry) => <Cell key={entry.id} fill={entry.change24h >= 0 ? 'var(--positive)' : 'var(--negative)'} />)}</Bar></BarChart></ResponsiveContainer></div>
         </>}
       </InfoCard>
-      <InfoCard title="Watchlist" className="span-4">
-        <form className="watchlist-form" onSubmit={(event) => { event.preventDefault(); addWatchlist() }}><input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder="Ticker hinzufügen" aria-label="Ticker hinzufügen" /><button className="button button-ghost" type="submit">Hinzufügen</button></form>
-        {watchlist.length ? <div className="watchlist-items">{watchlist.map((entry) => <div key={entry}><span>{entry}</span><button onClick={() => setWatchlist((items) => items.filter((item) => item !== entry))} aria-label={`${entry} entfernen`}>Entfernen</button></div>)}</div> : <EmptyState title="Noch keine Watchlist" icon={<BookmarkPlus size={21} />}>Ticker werden nur lokal gespeichert. Kurse für manuelle Ticker sind noch nicht verbunden.</EmptyState>}
-      </InfoCard>
+      <div className="span-4 stacked-cards">
+        <InfoCard title="Watchlist">
+          <form className="watchlist-form" onSubmit={(event) => { event.preventDefault(); addWatchlist() }}><input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder="Ticker hinzufügen" aria-label="Ticker hinzufügen" /><button className="button button-ghost" type="submit">Hinzufügen</button></form>
+          {watchlist.length ? <div className="watchlist-items">{watchlist.map((entry) => <div key={entry}><span>{entry}</span><button onClick={() => removeWatchlistItem((item) => item === entry, `Ticker „${entry}“`)} aria-label={`${entry} entfernen`}>Entfernen</button></div>)}</div> : <EmptyState title="Noch keine Watchlist" icon={<BookmarkPlus size={21} />}>Ticker werden nur lokal gespeichert. Kurse für manuelle Ticker sind noch nicht verbunden.</EmptyState>}
+        </InfoCard>
+        <CurrencyConverter />
+      </div>
     </div>
     <div className="content-grid finance-main-grid lower-grid">
       <InfoCard title="Investment-Journal" className="span-7">
-        {journal.length ? <div className="journal-list">{journal.map((entry) => <article key={entry.id}><div><strong>{entry.title}</strong><small>{timestamp.format(new Date(entry.createdAt))}</small></div><p>{entry.body || 'Ohne zusätzliche Notiz.'}</p><button onClick={() => setJournal((items) => items.filter((item) => item.id !== entry.id))}>Löschen</button></article>)}</div> : <EmptyState title="Noch keine Einträge">Halte Erkenntnisse und Entscheidungen fest – ausschließlich in deinem Browser gespeichert.</EmptyState>}
+        {journal.length ? <div className="journal-list">{journal.map((entry) => <article key={entry.id}><div><strong>{entry.title}</strong><small>{timestamp.format(new Date(entry.createdAt))}</small></div><p>{entry.body || 'Ohne zusätzliche Notiz.'}</p><button onClick={() => removeJournalEntry((item) => item.id === entry.id, 'Journaleintrag')}>Löschen</button></article>)}</div> : <EmptyState title="Noch keine Einträge">Halte Erkenntnisse und Entscheidungen fest – ausschließlich in deinem Browser gespeichert.</EmptyState>}
       </InfoCard>
       <InfoCard title="Screener & Nachrichten" className="span-5"><EmptyState title="Noch nicht verbunden" icon={<TrendingUp size={21} />}>Für Aktien-Screening und Nachrichten braucht es einen separaten, transparenten Datenadapter. Diese v0.1 ruft dafür keine Daten ab.</EmptyState></InfoCard>
     </div>

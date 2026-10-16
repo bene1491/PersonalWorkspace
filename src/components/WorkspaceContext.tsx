@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import { starterTasks } from '../data/demo'
 import { useLocalStorage } from '../hooks/useLocalStorage'
+import { useUndoableRemove } from '../hooks/useUndoableRemove'
 import type { Task, WorkspaceArea } from '../types'
 
 interface WorkspaceContextValue {
@@ -20,11 +21,18 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }
 
   function updateTask(id: string, patch: Partial<Pick<Task, 'title' | 'area' | 'status' | 'priority' | 'dueDate'>>) {
-    setTasks((current) => current.map((task) => (task.id === id ? { ...task, ...patch } : task)))
+    setTasks((current) => current.map((task) => {
+      if (task.id !== id) return task
+      const next = { ...task, ...patch }
+      if (patch.status === 'done' && task.status !== 'done') next.completedAt = new Date().toISOString()
+      else if (patch.status && patch.status !== 'done') next.completedAt = undefined
+      return next
+    }))
   }
 
+  const removeTaskWithUndo = useUndoableRemove(tasks, setTasks)
   function deleteTask(id: string) {
-    setTasks((current) => current.filter((task) => task.id !== id))
+    removeTaskWithUndo((task) => task.id === id, 'Aufgabe')
   }
 
   return <WorkspaceContext.Provider value={{ tasks, addTask, updateTask, deleteTask }}>{children}</WorkspaceContext.Provider>

@@ -4,7 +4,7 @@ Diese Datei dokumentiert verbindlich, was Personal Workspace v0.1 technisch tut 
 
 ## Grundprinzip
 
-Personal Workspace ist eine rein clientseitige Web-App ohne eigenes Backend. Es gibt **keinen Code**, der auf das Dateisystem des Rechners zugreift, auf dem die App läuft – weder lesend noch schreibend, weder lokal noch über einen Server. Ein Browser kann von sich aus ohnehin nicht beliebig auf das Dateisystem zugreifen; diese App macht zusätzlich keinerlei Gebrauch von Browser-APIs, die das punktuell erlauben würden (z. B. File System Access API, `<input type="file">` mit Upload an einen Server). Es gibt keine Datei-Upload-Funktion, keinen Ordner-Picker, keine Drag-&-Drop-Dateiübernahme.
+Personal Workspace ist eine rein clientseitige Web-App ohne eigenes Backend. Es gibt **keinen Code**, der auf das Dateisystem des Rechners zugreift, auf dem die App läuft – weder lesend noch schreibend, weder lokal noch über einen Server. Ein Browser kann von sich aus ohnehin nicht beliebig auf das Dateisystem zugreifen; diese App macht zusätzlich keinerlei Gebrauch von Browser-APIs, die das punktuell erlauben würden (z. B. File System Access API). Die einzige Dateiberührung der gesamten App ist das optionale Backup unter Einstellungen (siehe „Backup-Export/-Import“ unten) – ein gewöhnlicher Browser-Download bzw. ein einzelner, vom Nutzer per Klick ausgewählter `<input type="file">`-Upload, der die Datei nur lokal im Browser einliest. Es gibt keinen Ordner-Picker, keine Drag-&-Drop-Dateiübernahme und keinen Datei-Upload an einen Server.
 
 ## Entstehungskontext dieser Version
 
@@ -36,18 +36,30 @@ Es gibt keinen automatischen Scan persönlicher Ordner, keine Desktop-/Dokumente
 - Kein `sudo`, keine globalen Paketinstallationen, keine Änderungen an Homebrew/Betriebssystem-Konfiguration, globalen Umgebungsvariablen, Shell-Konfiguration oder globalen Git-Einstellungen.
 - Alle Abhängigkeiten sind projektlokal in `package.json` deklariert und werden über `npm install` in `node_modules/` installiert (nicht global).
 - Kein dauerhafter Hintergrunddienst, kein LaunchAgent, kein Scheduler. `npm run dev` startet einen gewöhnlichen, im Vordergrund laufenden Entwicklungsserver, der mit `Strg+C` beendet wird.
+- Der Produktionsbuild enthält einen von `vite-plugin-pwa` generierten Service Worker, der ausschließlich die eigenen, statischen App-Dateien (JS/CSS/HTML/Icons) für Offline-Start cached. Er fängt keine API-Aufrufe ab, verändert keine Antworten und hat keinen Zugriff auf `localStorage`-Inhalte oder das Dateisystem. Er ist nur im Produktionsbuild/`npm run preview` aktiv, nicht in `npm run dev`.
 
 ## Netzwerkzugriffe – vollständige Liste
 
-Diese App kontaktiert genau zwei externe, öffentliche, kostenlose APIs, beide direkt aus dem Browser (kein eigener Server dazwischen):
+Diese App kontaktiert genau sechs externe, öffentliche, kostenlose Hosts, alle direkt aus dem Browser (kein eigener Server dazwischen):
 
 | Host | Wann | Gesendete Daten | Zweck |
 |---|---|---|---|
-| `api.coingecko.com` | Beim Öffnen von „Finanzen“ oder „Command Center“, sowie manuell per Aktualisieren-Button | Keine personenbezogenen Daten – reiner, parameterloser Marktdaten-Request | Krypto-Kurse |
+| `api.coingecko.com` | Beim Öffnen von „Finanzen“, „Aufgaben & Planung“ oder „Command Center“, sowie manuell per Aktualisieren-Button | Keine personenbezogenen Daten – reiner, parameterloser Marktdaten-Request | Krypto-Kurse |
 | `geocoding-api.open-meteo.com` | Beim Öffnen des Command Centers bzw. nach Ändern des Orts in den Einstellungen | Der vom Nutzer in „Einstellungen → Ort für Wetterdaten“ eingetragene Ortsname (als URL-Parameter) | Ort → Koordinaten auflösen |
 | `api.open-meteo.com` | Direkt im Anschluss an die Geocoding-Antwort | Die zuvor aufgelösten Koordinaten | Aktuelles Wetter |
+| `api.frankfurter.app` | Bei Eingabe im Währungsrechner (Finanzen), mit kurzer Verzögerung nach dem Tippen | Betrag sowie Ausgangs-/Zielwährungscode (z. B. „EUR“, „USD“) | Wechselkurs-Umrechnung |
+| `date.nager.at` | Beim Öffnen von „Uni & Studium“ | Keine personenbezogenen Daten – fest auf Deutschland (`DE`) eingestellter Request | Nächster gesetzlicher Feiertag |
 
 Es werden **keine** Konto-, Zahlungs- oder Zugangsdaten übertragen, keine Cookies von Drittanbietern gesetzt, kein Tracking/Analytics eingebunden. Schlägt ein Abruf fehl (Netzwerkfehler, Rate-Limit, nicht erreichbar), zeigt die App einen expliziten Fehlerzustand mit Klartextmeldung – es wird nie ein erfundener Ersatzwert als echtes Ergebnis ausgegeben.
+
+## Backup-Export/-Import
+
+Unter Einstellungen → Backup kann der Nutzer alle App-Daten als JSON-Datei herunterladen („Exportieren“) oder eine zuvor exportierte Datei wieder einlesen („Importieren“). Beides läuft vollständig lokal im Browser:
+
+- **Export** erzeugt die Datei aus den aktuellen `localStorage`-Werten mit der Blob-/`URL.createObjectURL`-API und löst einen gewöhnlichen Browser-Download aus. Es wird nichts an einen Server gesendet.
+- **Import** liest eine vom Nutzer über den nativen Datei-Dialog ausgewählte Datei rein lokal mit der `File`-API, validiert sie auf das erwartete Format und schreibt die enthaltenen Werte zurück in `localStorage`. Vor dem Überschreiben bestätigt der Nutzer explizit per Dialog, dass die aktuell gespeicherten Daten ersetzt werden.
+
+Diese Funktion berührt ausschließlich die von dieser App selbst verwalteten Daten (siehe Tabelle unten) – sie liest, durchsucht oder verändert keine anderen Dateien oder Ordner auf dem Rechner.
 
 ## Lokale Datenspeicherung
 
@@ -61,17 +73,19 @@ Alle App-eigenen Daten liegen ausschließlich im `localStorage` des verwendenden
 | `personal-workspace.music-entries.v1` | Music-Studio-Songideen |
 | `personal-workspace.document-categories.v1` | Lokale Dokumentkategorien (nur Namen, keine Dateien) |
 | `personal-workspace.prompts.v1` | AI-Lab-Prompt-Bibliothek |
+| `personal-workspace.flashcards.v1` | Karteikarten (Uni & Studium) |
+| `personal-workspace.pomodoro-settings.v1` | Fokus-/Pausen-Dauer des Pomodoro-Timers |
 | `personal-workspace.theme.v1` | Dark/Light-Einstellung |
 | `personal-workspace.location.v1` | Ort für Wetterdaten |
 | `personal-workspace.compact-mode.v1` | Dichte-Einstellung |
 
-Löschen der Browserdaten für diese Seite entfernt alle genannten Inhalte vollständig und unwiderruflich.
+Genau diese Keys sind es auch, die der Backup-Export/-Import (siehe oben) sammelt bzw. zurückschreibt – definiert an einer einzigen Stelle in `src/services/backup.ts`, damit die Liste nicht divergieren kann. Löschen der Browserdaten für diese Seite entfernt alle genannten Inhalte vollständig und unwiderruflich, sofern zuvor kein Backup exportiert wurde.
 
 ## Explizit nicht vorhanden in dieser Version
 
 - Keine Verbindung zu Brokerkonten, kein Portfolio-Import, keine Kauf-/Verkaufsfunktion.
 - Keine Verbindung zu einem externen KI-Anbieter, keine API-Keys, keine Übertragung von Chat-Inhalten.
-- Keine echte Audioverarbeitung oder -analyse (Peak/Loudness/etc. sind als Datenmodell vorbereitet, aber inaktiv).
+- Keine echte Audioverarbeitung oder -analyse von Audiodateien (Peak/Loudness/etc. sind als Datenmodell vorbereitet, aber inaktiv). Das Metronom erzeugt ausschließlich eigene, synthetische Audio-Clicks über die Web Audio API – es liest, analysiert oder speichert keine Audiodateien.
 - Keine tatsächlich laufenden Automatisierungen, Scheduler oder Hintergrundprozesse.
 - Keine Dateisystem-Indexierung, kein PDF-Assistent mit echtem Dateizugriff.
 
