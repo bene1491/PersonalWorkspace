@@ -2,19 +2,20 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { ToastProvider } from './components/ToastContext'
 import { getTaskSearchItems, useWorkspace, WorkspaceProvider } from './components/WorkspaceContext'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { Dashboard } from './modules/Dashboard'
-import { Tasks } from './modules/Tasks'
 
 const Finance = lazy(() => import('./modules/Finance').then((module) => ({ default: module.Finance })))
+const Tasks = lazy(() => import('./modules/Tasks').then((module) => ({ default: module.Tasks })))
 const CoinDetail = lazy(() => import('./modules/Finance').then((module) => ({ default: module.CoinDetail })))
-const MusicStudio = lazy(() => import('./modules/WorkspaceModules').then((module) => ({ default: module.MusicStudio })))
-const Study = lazy(() => import('./modules/WorkspaceModules').then((module) => ({ default: module.Study })))
-const Documents = lazy(() => import('./modules/WorkspaceModules').then((module) => ({ default: module.Documents })))
-const AiLab = lazy(() => import('./modules/WorkspaceModules').then((module) => ({ default: module.AiLab })))
-const Automations = lazy(() => import('./modules/WorkspaceModules').then((module) => ({ default: module.Automations })))
-const Settings = lazy(() => import('./modules/WorkspaceModules').then((module) => ({ default: module.Settings })))
+const MusicStudio = lazy(() => import('./modules/MusicStudio').then((module) => ({ default: module.MusicStudio })))
+const Study = lazy(() => import('./modules/Study').then((module) => ({ default: module.Study })))
+const Documents = lazy(() => import('./modules/Documents').then((module) => ({ default: module.Documents })))
+const AiLab = lazy(() => import('./modules/AiLab').then((module) => ({ default: module.AiLab })))
+const Automations = lazy(() => import('./modules/Automations').then((module) => ({ default: module.Automations })))
+const Settings = lazy(() => import('./modules/Settings').then((module) => ({ default: module.Settings })))
 
 function RouteLoading() {
   return <div className="route-loading"><span className="loader" /></div>
@@ -49,5 +50,5 @@ function WorkspaceApp() {
 }
 
 export default function App() {
-  return <BrowserRouter><WorkspaceProvider><WorkspaceApp /></WorkspaceProvider></BrowserRouter>
+  return <BrowserRouter><ToastProvider><WorkspaceProvider><WorkspaceApp /></WorkspaceProvider></ToastProvider></BrowserRouter>
 }
