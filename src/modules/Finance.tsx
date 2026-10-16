@@ -1,18 +1,45 @@
-import { useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ArrowLeft, BookmarkPlus, ExternalLink, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react'
+import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { ArrowLeft, BookmarkPlus, ExternalLink, PieChart as PieChartIcon, Plus, RefreshCw, TrendingDown, TrendingUp, Trash2, Wallet } from 'lucide-react'
 import { CurrencyConverter } from '../components/CurrencyConverter'
+import { FearGreedWidget } from '../components/FearGreedWidget'
+import { PriceAlerts } from '../components/PriceAlerts'
 import { Sparkline } from '../components/Sparkline'
 import { EmptyState, InfoCard, Notice, Pill, SectionHeading } from '../components/ui'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useMarketData } from '../hooks/useMarketData'
 import { useUndoableRemove } from '../hooks/useUndoableRemove'
-import type { JournalEntry } from '../types'
+import type { JournalEntry, MarketAsset, PortfolioHolding } from '../types'
 
 const money = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 })
 const bigMoney = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, notation: 'compact' })
+const quantityFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 6 })
 const timestamp = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' })
+const ALLOCATION_COLORS = ['var(--accent)', 'var(--positive)', 'var(--warning)', 'var(--accent-strong)', 'var(--negative)', 'var(--text-secondary)']
+
+function usePortfolioStats(holdings: PortfolioHolding[], data: MarketAsset[]) {
+  return useMemo(() => {
+    const rows = holdings.map((holding) => {
+      const asset = data.find((entry) => entry.id === holding.assetId)
+      const currentPrice = asset?.price ?? null
+      const currentValue = currentPrice !== null ? currentPrice * holding.quantity : null
+      const costBasis = holding.buyPrice * holding.quantity
+      const pnl = currentValue !== null ? currentValue - costBasis : null
+      const pnlPercent = costBasis > 0 && pnl !== null ? (pnl / costBasis) * 100 : null
+      return { holding, asset, currentPrice, currentValue, costBasis, pnl, pnlPercent }
+    })
+    const totalValue = rows.reduce((sum, row) => sum + (row.currentValue ?? 0), 0)
+    const totalCost = rows.reduce((sum, row) => sum + row.costBasis, 0)
+    const totalPnl = totalValue - totalCost
+    const totalPnlPercent = totalCost > 0 ? (totalPnl / totalCost) * 100 : null
+    const allocation = rows
+      .filter((row): row is typeof row & { currentValue: number } => row.currentValue !== null && row.currentValue > 0)
+      .map((row) => ({ symbol: row.holding.symbol, value: row.currentValue, percent: totalValue > 0 ? (row.currentValue / totalValue) * 100 : 0 }))
+      .sort((a, b) => b.value - a.value)
+    return { rows, totalValue, totalCost, totalPnl, totalPnlPercent, allocation }
+  }, [holdings, data])
+}
 
 export function Finance() {
   const navigate = useNavigate()
@@ -23,8 +50,25 @@ export function Finance() {
   const [journalTitle, setJournalTitle] = useState('')
   const [journalBody, setJournalBody] = useState('')
   const [symbol, setSymbol] = useState('')
+  const [holdings, setHoldings] = useLocalStorage<PortfolioHolding[]>('personal-workspace.portfolio.v1', [])
+  const [assetId, setAssetId] = useState('')
+  const [quantity, setQuantity] = useState('')
+  const [buyPrice, setBuyPrice] = useState('')
   const removeWatchlistItem = useUndoableRemove(watchlist, setWatchlist)
   const removeJournalEntry = useUndoableRemove(journal, setJournal)
+  const removeHolding = useUndoableRemove(holdings, setHoldings)
+  const portfolio = usePortfolioStats(holdings, data)
+
+  function addHolding(event: React.FormEvent) {
+    event.preventDefault()
+    const asset = data.find((entry) => entry.id === assetId)
+    const qty = Number(quantity.replace(',', '.'))
+    const price = Number(buyPrice.replace(',', '.'))
+    if (!asset || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(price) || price < 0) return
+    setHoldings((items) => [{ id: crypto.randomUUID(), assetId: asset.id, symbol: asset.symbol, quantity: qty, buyPrice: price, createdAt: new Date().toISOString() }, ...items])
+    setQuantity('')
+    setBuyPrice('')
+  }
 
   function addWatchlist() {
     const cleaned = symbol.trim().toLocaleUpperCase('de-DE')
@@ -51,15 +95,28 @@ export function Finance() {
     </form>}
     <div className="finance-summary-grid">
       <InfoCard className="portfolio-state">
-        <Pill tone="neutral">Portfolio</Pill><h2>Keine Werte erfasst</h2><p>Füge künftig manuell Bestände hinzu. Ein automatischer Import ist bewusst nicht aktiv.</p><span className="muted-metric">—</span>
+        <Pill tone="neutral">Portfolio</Pill>
+        {holdings.length ? <>
+          <h2>{money.format(portfolio.totalValue)}</h2>
+          <p className={`market-change ${portfolio.totalPnl >= 0 ? 'positive' : 'negative'}`}>
+            {portfolio.totalPnl >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+            {portfolio.totalPnl >= 0 ? '+' : ''}{money.format(portfolio.totalPnl)}
+            {portfolio.totalPnlPercent !== null && ` (${portfolio.totalPnlPercent >= 0 ? '+' : ''}${portfolio.totalPnlPercent.toFixed(1)} %)`}
+          </p>
+        </> : <><h2>Keine Werte erfasst</h2><p>Füge künftig manuell Bestände hinzu. Ein automatischer Import ist bewusst nicht aktiv.</p><span className="muted-metric">—</span></>}
       </InfoCard>
       <InfoCard className="portfolio-state">
-        <Pill tone="neutral">Asset-Allokation</Pill><h2>Wartet auf Eingaben</h2><p>Die Aufteilung wird nur aus deinen später selbst angelegten Positionen berechnet.</p><span className="muted-metric">—</span>
+        <Pill tone="neutral">Asset-Allokation</Pill>
+        {portfolio.allocation.length ? <>
+          <h2>{portfolio.allocation[0].symbol} · {portfolio.allocation[0].percent.toFixed(0)} %</h2>
+          <p>Größte Position in deinem erfassten Portfolio.</p>
+        </> : <><h2>Wartet auf Eingaben</h2><p>Die Aufteilung wird nur aus deinen später selbst angelegten Positionen berechnet.</p><span className="muted-metric">—</span></>}
       </InfoCard>
       <InfoCard className="market-source-card">
         <div className="market-card-head"><Pill tone={status === 'ready' ? 'positive' : status === 'error' ? 'warning' : 'neutral'}>{status === 'ready' ? 'Live abgerufen' : status === 'error' ? 'Abruf fehlgeschlagen' : 'Abruf läuft'}</Pill><button className="mini-icon" onClick={() => void refresh()} aria-label="Marktdaten aktualisieren"><RefreshCw size={15} /></button></div>
         <h2>Öffentliche Märkte</h2><p>Quelle: CoinGecko API · kryptobezogene Spotpreise in EUR.</p>{data[0] && <small>Zuletzt abgerufen: {timestamp.format(new Date(data[0].updatedAt))}</small>}
       </InfoCard>
+      <FearGreedWidget />
     </div>
     <div className="content-grid finance-main-grid">
       <InfoCard title="Marktübersicht" className="span-8">
@@ -92,8 +149,60 @@ export function Finance() {
           <form className="watchlist-form" onSubmit={(event) => { event.preventDefault(); addWatchlist() }}><input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder="Ticker hinzufügen" aria-label="Ticker hinzufügen" /><button className="button button-ghost" type="submit">Hinzufügen</button></form>
           {watchlist.length ? <div className="watchlist-items">{watchlist.map((entry) => <div key={entry}><span>{entry}</span><button onClick={() => removeWatchlistItem((item) => item === entry, `Ticker „${entry}“`)} aria-label={`${entry} entfernen`}>Entfernen</button></div>)}</div> : <EmptyState title="Noch keine Watchlist" icon={<BookmarkPlus size={21} />}>Ticker werden nur lokal gespeichert. Kurse für manuelle Ticker sind noch nicht verbunden.</EmptyState>}
         </InfoCard>
+        <PriceAlerts data={data} status={status} />
         <CurrencyConverter />
       </div>
+    </div>
+    <div className="content-grid finance-main-grid lower-grid">
+      <InfoCard title="Portfolio verwalten" className="span-8">
+        <form className="portfolio-form" onSubmit={addHolding}>
+          <select value={assetId} onChange={(event) => setAssetId(event.target.value)} aria-label="Asset auswählen">
+            <option value="">Asset wählen …</option>
+            {data.map((asset) => <option key={asset.id} value={asset.id}>{asset.name} ({asset.symbol})</option>)}
+          </select>
+          <input value={quantity} onChange={(event) => setQuantity(event.target.value)} placeholder="Menge" inputMode="decimal" aria-label="Menge" />
+          <input value={buyPrice} onChange={(event) => setBuyPrice(event.target.value)} placeholder="Kaufpreis €/Stück" inputMode="decimal" aria-label="Kaufpreis pro Einheit in Euro" />
+          <button className="button button-primary" type="submit" disabled={status !== 'ready'}><Plus size={15} /> Hinzufügen</button>
+        </form>
+        {portfolio.rows.length ? (
+          <div className="portfolio-table">
+            <div className="portfolio-table-head"><span>Asset</span><span>Menge</span><span>Kaufpreis</span><span>Wert</span><span>G/V</span><span /></div>
+            {portfolio.rows.map((row) => (
+              <div className="portfolio-table-row" key={row.holding.id}>
+                <span className="asset-name"><b>{row.holding.symbol.slice(0, 1)}</b><span><strong>{row.asset?.name ?? row.holding.symbol}</strong><small>{row.holding.symbol}</small></span></span>
+                <span>{quantityFormat.format(row.holding.quantity)}</span>
+                <span>{money.format(row.holding.buyPrice)}</span>
+                <span>{row.currentValue !== null ? money.format(row.currentValue) : '—'}</span>
+                <span className={row.pnl !== null ? `market-change ${row.pnl >= 0 ? 'positive' : 'negative'}` : 'small-status'}>
+                  {row.pnl !== null ? <>{row.pnl >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}{row.pnl >= 0 ? '+' : ''}{money.format(row.pnl)}</> : '—'}
+                </span>
+                <button className="row-delete" onClick={() => removeHolding((item) => item.id === row.holding.id, `Position „${row.holding.symbol}“`)} aria-label={`Position ${row.holding.symbol} entfernen`}><Trash2 size={15} /></button>
+              </div>
+            ))}
+          </div>
+        ) : <EmptyState title="Noch keine Positionen" icon={<Wallet size={21} />}>Trage Menge und Kaufpreis für eine der oben abgerufenen Kryptowährungen ein – komplett lokal, kein Broker nötig.</EmptyState>}
+      </InfoCard>
+      <InfoCard title="Allokation" className="span-4">
+        {portfolio.allocation.length ? <>
+          <ResponsiveContainer width="100%" height={170}>
+            <PieChart>
+              <Pie data={portfolio.allocation} dataKey="value" nameKey="symbol" innerRadius={44} outerRadius={74} paddingAngle={2} isAnimationActive={false}>
+                {portfolio.allocation.map((entry, index) => <Cell key={entry.symbol} fill={ALLOCATION_COLORS[index % ALLOCATION_COLORS.length]} />)}
+              </Pie>
+              <Tooltip formatter={(value, name) => { const displayed = Array.isArray(value) ? value[0] : value; return [money.format(Number(displayed)), name] }} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="allocation-legend">
+            {portfolio.allocation.map((entry, index) => (
+              <div key={entry.symbol}>
+                <span className="legend-dot" style={{ '--dot-color': ALLOCATION_COLORS[index % ALLOCATION_COLORS.length] } as CSSProperties} />
+                <span>{entry.symbol}</span>
+                <small>{entry.percent.toFixed(1)} %</small>
+              </div>
+            ))}
+          </div>
+        </> : <EmptyState title="Noch keine Aufteilung" icon={<PieChartIcon size={21} />}>Erscheint, sobald du Positionen mit aktuellem Marktwert erfasst hast.</EmptyState>}
+      </InfoCard>
     </div>
     <div className="content-grid finance-main-grid lower-grid">
       <InfoCard title="Investment-Journal" className="span-7">

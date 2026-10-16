@@ -7,20 +7,23 @@ Personal Workspace ist eine reine Client-Anwendung (Single Page App). Es gibt ke
 ```
 Browser
  ├─ React-App (Vite-Build, als PWA installierbar)
- │   ├─ App-Shell (Navigation, Suche, Theme)
+ │   ├─ App-Shell (Navigation, Befehlspalette, Schnellnotizen, Theme)
  │   ├─ ToastProvider (Undo-Benachrichtigungen, global)
  │   ├─ 9 Workspace-Module (eigene Route je Lebensbereich)
  │   └─ WorkspaceContext (Aufgaben, global)
- ├─ localStorage (Aufgaben, Watchlist, Journal, Prompts, Songideen, Karteikarten, Einstellungen, …)
+ ├─ localStorage (Aufgaben, Watchlist, Portfolio, Preis-Alarme, Journal, Prompts, Songideen, Karteikarten, Schnellnotizen, Einstellungen, …)
  ├─ Service Worker (precached App-Shell für Offline-/Installierbarkeit, generiert von vite-plugin-pwa)
- └─ optionale, direkte Browser-Fetches zu vier öffentlichen APIs
+ ├─ Notification API (nur bei explizit erteilter Erlaubnis, nur für ausgelöste Preis-Alarme bei offenem Tab)
+ └─ optionale, direkte Browser-Fetches zu sechs öffentlichen APIs
      ├─ api.coingecko.com (Marktdaten)
      ├─ api.open-meteo.com / geocoding-api.open-meteo.com (Wetter)
      ├─ api.frankfurter.app (Wechselkurse)
-     └─ date.nager.at (Feiertage)
+     ├─ date.nager.at (Feiertage)
+     ├─ api.alternative.me (Angst-&-Gier-Index)
+     └─ api.datamuse.com (Reime/verwandte Wörter)
 ```
 
-Es gibt keine eigene Backend-API, keine Server-seitige Datenverarbeitung und keinen Datenabfluss an einen eigenen Dienst – nur optionale, direkte Browser-zu-API-Aufrufe an die vier oben genannten, öffentlichen Quellen. Der von `vite-plugin-pwa` generierte Service Worker cached ausschließlich die eigenen, statischen App-Dateien (JS/CSS/HTML/Icons) für Offline-Start und Installierbarkeit – er fängt keine API-Aufrufe ab und speichert keine Nutzerdaten.
+Es gibt keine eigene Backend-API, keine Server-seitige Datenverarbeitung und keinen Datenabfluss an einen eigenen Dienst – nur optionale, direkte Browser-zu-API-Aufrufe an die sechs oben genannten, öffentlichen Quellen. Der von `vite-plugin-pwa` generierte Service Worker cached ausschließlich die eigenen, statischen App-Dateien (JS/CSS/HTML/Icons) für Offline-Start und Installierbarkeit – er fängt keine API-Aufrufe ab und speichert keine Nutzerdaten.
 
 ## Warum dieser Stack
 
@@ -48,6 +51,10 @@ src/
 │  ├─ Metronome.tsx           Web-Audio-Metronom mit Tap-Tempo (Music Studio)
 │  ├─ PomodoroTimer.tsx       Fokus-/Pausen-Timer mit Ringanzeige (Aufgaben & Planung)
 │  ├─ CurrencyConverter.tsx   Währungsrechner-Widget (Finanzen)
+│  ├─ PriceAlerts.tsx         Preis-Alarme auf Watchlist-Assets inkl. Browser-Notification (Finanzen)
+│  ├─ FearGreedWidget.tsx     Angst-&-Gier-Index-Anzeige (Finanzen)
+│  ├─ RhymeFinder.tsx         Reim-/Wortfinder fürs Songwriting (Music Studio)
+│  ├─ QuickNotes.tsx          Immer erreichbares Schnellnotizen-Panel (App-Shell-Ebene, Trigger in der Topbar)
 │  └─ ui.tsx                  Primitive: Pill, SectionHeading, InfoCard, Notice, EmptyState
 │
 ├─ data/
@@ -58,21 +65,24 @@ src/
 │  ├─ useUndoableRemove.ts    Generisches Lösch-mit-Undo-Muster auf Basis von ToastContext
 │  ├─ useMarketData.ts        Lädt/verwaltet Status der CoinGecko-Marktdaten
 │  ├─ useWeather.ts           Lädt/verwaltet Status der Open-Meteo-Wetterdaten für einen Ort
-│  └─ useNextHoliday.ts       Lädt/verwaltet Status des nächsten gesetzlichen Feiertags
+│  ├─ useNextHoliday.ts       Lädt/verwaltet Status des nächsten gesetzlichen Feiertags
+│  └─ useFearGreedIndex.ts    Lädt/verwaltet Status des Angst-&-Gier-Index
 │
 ├─ services/                  Reine Datenzugriffsschicht, ohne UI-Abhängigkeit
 │  ├─ marketData.ts            CoinGecko-Adapter (fetch, Mapping auf MarketAsset[])
 │  ├─ weather.ts                Open-Meteo-Adapter (Geocoding + Forecast, Mapping auf WeatherSnapshot)
 │  ├─ currency.ts               Frankfurter.app-Adapter (Wechselkurs-Konvertierung)
 │  ├─ holidays.ts               date.nager.at-Adapter (nächster gesetzlicher Feiertag)
+│  ├─ fearGreed.ts              Alternative.me-Adapter (Angst-&-Gier-Index) + deutsche Klassifikations-Labels
+│  ├─ rhymes.ts                 Datamuse-Adapter (Reime, verwandte Wörter)
 │  ├─ backup.ts                 Sammelt/schreibt alle personal-workspace.*-Storage-Keys als JSON (Export/Import)
 │  └─ searchIndex.ts            Liest Prompts/Songideen/Journal/Karteikarten/Watchlist direkt aus localStorage für die Befehlspalette
 │
 └─ modules/                   Ein Modul pro Hauptbereich der Navigation
    ├─ Dashboard.tsx            Command Center
-   ├─ Finance.tsx               Finanzen (Marktübersicht, Watchlist, Journal, Währungsrechner) + CoinDetail
+   ├─ Finance.tsx               Finanzen (Marktübersicht, Portfolio-Tracking, Allokation, Preis-Alarme, Watchlist, Journal, Währungsrechner, Angst-&-Gier-Index) + CoinDetail
    ├─ Tasks.tsx                 Aufgaben & Planung (Liste/Woche/Kanban-Board, Produktivitäts-Chart, Pomodoro-Timer)
-   ├─ MusicStudio.tsx           Music Studio (Songideen, Metronom & Tap-Tempo)
+   ├─ MusicStudio.tsx           Music Studio (Songideen, Metronom & Tap-Tempo, Reim-/Wortfinder)
    ├─ Study.tsx                 Uni & Studium (Kurse, Feiertage-Widget, Karteikarten & Lernmodus)
    ├─ Documents.tsx             Dateien & Dokumente
    ├─ AiLab.tsx                 AI Lab
@@ -95,6 +105,8 @@ Jedes Modul lebt in seiner eigenen Datei – das war ursprünglich als `Workspac
 **Ehrliche Zustände statt erfundener Daten.** Jede datengetriebene Ansicht kennt mindestens vier Zustände: lädt, echte Daten vorhanden, Fehler (mit Klartext-Fehlermeldung und manuellem Retry), leer (noch keine eigenen Einträge). Es gibt keinen Zustand, der bei einem fehlgeschlagenen Abruf einen plausiblen, aber erfundenen Ersatzwert anzeigt.
 
 **Löschen ist rückgängig machbar.** Jede Lösch-Aktion auf Nutzerdaten (Aufgaben, Watchlist-Einträge, Journal, Songideen, Kategorien, Prompts, Karteikarten) läuft über `useUndoableRemove`: Das Element wird sofort aus dem State entfernt, ein Toast mit „Rückgängig“ bleibt einige Sekunden sichtbar und stellt das Element bei Klick exakt an seiner ursprünglichen Position wieder her. Das ist ein generischer Hook, kein Modul muss eigene Lösch-Bestätigungsdialoge bauen.
+
+**Abgeleiteter Zustand statt eigener Datenquelle.** Portfolio-Wert, Gewinn/Verlust und die Allokations-Grafik in `Finance.tsx` sind kein eigener API-Aufruf, sondern reine Berechnung (`usePortfolioStats`) aus zwei bereits vorhandenen Dingen: den lokal gespeicherten Positionen und den ohnehin schon von `useMarketData` geladenen Live-Preisen. Preis-Alarme folgen demselben Prinzip, mit einer Besonderheit: Ein neuer Alarm wird zusätzlich sofort beim Anlegen gegen den aktuell bekannten Preis geprüft (nicht erst beim nächsten Datenabruf) – sonst würde ein Alarm, dessen Schwelle bereits beim Erstellen erreicht ist, fälschlich als „Aktiv“ statt „Ausgelöst“ erscheinen, bis die Daten das nächste Mal aktualisiert werden.
 
 **Eine kontrollierte Ausnahme: `searchIndex.ts`.** Damit die Befehlspalette Prompts, Songideen, Journal-Einträge, Karteikarten und Watchlist-Ticker findet, ohne dass jedes dieser Module seinen lokalen State globalisieren muss (was gegen die „einzige geteilte Domäne“-Regel oben verstoßen würde), liest `src/services/searchIndex.ts` deren `localStorage`-Werte direkt und frisch bei jedem Öffnen der Palette. Das ist die einzige Stelle im Code, die `localStorage`-Keys eines anderen Moduls kennt – bewusst zentralisiert, damit kein Modul direkt vom internen Speicherformat eines anderen abhängt.
 

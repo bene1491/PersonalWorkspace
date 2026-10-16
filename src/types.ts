@@ -32,6 +32,24 @@ export interface JournalEntry {
   createdAt: string
 }
 
+export interface PortfolioHolding {
+  id: string
+  assetId: string
+  symbol: string
+  quantity: number
+  buyPrice: number
+  createdAt: string
+}
+
+export interface PriceAlert {
+  id: string
+  symbol: string
+  direction: 'above' | 'below'
+  threshold: number
+  createdAt: string
+  triggeredAt?: string
+}
+
 export interface MarketAsset {
   id: string
   symbol: string

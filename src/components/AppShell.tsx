@@ -24,6 +24,7 @@ import { staticSearchItems } from '../data/demo'
 import { buildLocalSearchItems } from '../services/searchIndex'
 import type { SearchItem } from '../types'
 import { Pill } from './ui'
+import { QuickNotes } from './QuickNotes'
 
 type PaletteItem =
   | { kind: 'action'; id: string; title: string; subtitle: string; run: () => void }
@@ -202,6 +203,7 @@ export function AppShell({ children, theme, onToggleTheme, taskItems }: AppShell
               <span>Suche</span>
               <kbd>⌘ K</kbd>
             </button>
+            <QuickNotes />
             <button className="icon-button theme-button" aria-label="Darstellung ändern" onClick={onToggleTheme}>
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>

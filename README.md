@@ -26,8 +26,8 @@ npm run lint      # oxlint über den gesamten Quellcode
 ## Was diese Version kann
 
 - **Command Center** – Tagesüberblick, offene Aufgaben, Marktschnappschuss, Wetter-Widget, Verbindungsstatus.
-- **Finanzen** – echte, live abgerufene Krypto-Kurse (CoinGecko), 7-Tage-Sparklines, Asset-Detailseiten, ein Währungsrechner (EZB-Kurse), lokale Watchlist und ein lokales Investment-Journal.
-- **Music Studio** – lokale Songideen-Bibliothek, ein echtes Metronom mit Tap-Tempo (Web Audio API), Produktions-Checkliste, vorbereitete (inaktive) Audioexport-Analyse.
+- **Finanzen** – echte, live abgerufene Krypto-Kurse (CoinGecko), 7-Tage-Sparklines, Asset-Detailseiten, ein **echtes Portfolio-Tracking** (eigene Bestände eintragen, Wert/Gewinn-Verlust/Allokation gegen Live-Kurse berechnet), **Preis-Alarme** mit optionaler Browser-Benachrichtigung, der tägliche Krypto-**Angst-&-Gier-Index**, ein Währungsrechner (EZB-Kurse), lokale Watchlist und ein lokales Investment-Journal.
+- **Music Studio** – lokale Songideen-Bibliothek, ein echtes Metronom mit Tap-Tempo (Web Audio API), ein **Reim- & Wortfinder** fürs Songwriting (Datamuse API), Produktions-Checkliste, vorbereitete (inaktive) Audioexport-Analyse.
 - **Uni & Studium** – Kurse/Module als Beispieldaten, ein spielbares Karteikarten- & Quiz-System, ein Feiertage-Widget (echte Daten), PDF-Assistent als klar gekennzeichneter, noch nicht aktiver Platzhalter.
 - **Dateien & Dokumente** – Architektur für eine spätere, ausdrücklich freigegebene, rein lesende Dateiintegration; aktuell ohne jeden Dateisystemzugriff.
 - **Aufgaben & Planung** – vollständige, lokal gespeicherte Aufgabenverwaltung (anlegen, bearbeiten, filtern, erledigen, löschen) mit drei Ansichten – Liste, Woche und ein **Kanban-Board** mit Drag & Drop (plus tastaturbedienbaren Verschieben-Buttons) –, einem Produktivitäts-Chart und einem eingebauten Pomodoro-/Fokus-Timer.
@@ -39,11 +39,13 @@ Alle Module, die noch keine echte Datenquelle besitzen, kennzeichnen das explizi
 
 Die globale Suche (⌘K) ist zu einer echten Befehlspalette ausgebaut: Sie durchsucht nicht nur die Navigation und deine Aufgaben, sondern auch Karteikarten, Prompts, Songideen, Journal-Einträge und die Watchlist – und kann direkt Aktionen ausführen („Neue Aufgabe anlegen“, „Theme umschalten“, „Pomodoro-Timer starten“), per Maus oder komplett über die Pfeiltasten und Enter.
 
+Außerdem immer erreichbar, egal auf welcher Seite du bist: ein **Schnellnotizen**-Zettel über das Symbol in der Kopfzeile, komplett lokal und automatisch gespeichert.
+
 Die App ist außerdem als **PWA installierbar** (eigenes App-Icon, läuft im eigenen Fenster ohne Browser-Chrome) – in Chrome/Edge über das Installieren-Symbol in der Adressleiste, auf dem iPhone über „Zum Home-Bildschirm“ in Safari.
 
 ## Echte Datenquellen
 
-Diese v0.1 ruft vier öffentliche, kostenlose APIs direkt aus deinem Browser ab – ohne API-Key, ohne Server dazwischen:
+Diese v0.1 ruft sechs öffentliche, kostenlose APIs direkt aus deinem Browser ab – ohne API-Key, ohne Server dazwischen:
 
 | Quelle | Zweck | Endpunkt |
 |---|---|---|
@@ -51,8 +53,10 @@ Diese v0.1 ruft vier öffentliche, kostenlose APIs direkt aus deinem Browser ab 
 | [Open-Meteo](https://open-meteo.com/) | Geocoding + aktuelles Wetter für einen frei wählbaren Ort | `geocoding-api.open-meteo.com`, `api.open-meteo.com` |
 | [Frankfurter.app](https://www.frankfurter.app/) | EZB-Referenzkurse für den Währungsrechner | `api.frankfurter.app` |
 | [date.nager.at](https://date.nager.at/) | Gesetzliche Feiertage (Deutschland) | `date.nager.at` |
+| [Alternative.me](https://alternative.me/crypto/fear-and-greed-index/) | Täglicher Angst-&-Gier-Index für den Kryptomarkt | `api.alternative.me` |
+| [Datamuse](https://www.datamuse.com/api/) | Reime und verwandte Wörter fürs Songwriting | `api.datamuse.com` |
 
-Aktien/ETFs sind bewusst **nicht** integriert: Mir sind keine kostenlosen, API-Key-freien Quellen bekannt, die zuverlässig per Browser-Fetch (CORS) erreichbar sind – eine kaputte oder nur scheinbar funktionierende Integration wollten wir nicht ausliefern. Alle vier oben genannten Quellen zeigen Quelle, Zeitstempel und einen expliziten Fehlerzustand bei nicht erreichbarer API – es werden nie erfundene Ersatzwerte angezeigt.
+Aktien/ETFs sind bewusst **nicht** integriert: Mir sind keine kostenlosen, API-Key-freien Quellen bekannt, die zuverlässig per Browser-Fetch (CORS) erreichbar sind – eine kaputte oder nur scheinbar funktionierende Integration wollten wir nicht ausliefern. Alle oben genannten Quellen zeigen Quelle, Zeitstempel und einen expliziten Fehlerzustand bei nicht erreichbarer API – es werden nie erfundene Ersatzwerte angezeigt. Der Reim-/Wortfinder weist zusätzlich klar darauf hin, dass seine Wortdatenbank Englisch-basiert ist und für deutsche Wörter oft wenige Treffer liefert.
 
 > **Hinweis für Cloud-Sessions:** Läuft diese App in einer Sandbox mit eingeschränktem Netzwerkzugriff (z. B. bestimmte Cloud-Entwicklungsumgebungen), können diese Hosts blockiert sein. Auf deinem eigenen Rechner mit `npm run dev` funktionieren alle Abrufe normal.
 
@@ -60,7 +64,7 @@ Aktien/ETFs sind bewusst **nicht** integriert: Mir sind keine kostenlosen, API-K
 
 - Kein Zugriff auf dein Dateisystem, keine Ordnersuche, keine Indexierung persönlicher Dateien.
 - Keine Konten-, Broker- oder KI-Anbieter-Verbindung, keine API-Keys.
-- Alle App-Daten (Aufgaben, Watchlist, Journal, Prompts, Songideen, Karteikarten, Einstellungen) liegen ausschließlich im `localStorage` deines Browsers – du kannst sie jederzeit unter Einstellungen → Backup als JSON exportieren oder wiederherstellen.
+- Alle App-Daten (Aufgaben, Watchlist, Portfolio, Preis-Alarme, Journal, Prompts, Songideen, Karteikarten, Schnellnotizen, Einstellungen) liegen ausschließlich im `localStorage` deines Browsers – du kannst sie jederzeit unter Einstellungen → Backup als JSON exportieren oder wiederherstellen.
 - Tastatur- und Screenreader-bedienbar: Befehlspalette und mobiles Menü verwalten den Fokus korrekt, alle Interaktionen (inklusive Kanban-Board) funktionieren ohne Maus, Text-Kontraste sind gegen WCAG AA geprüft.
 - Vollständige Details: [SECURITY.md](./SECURITY.md).
 

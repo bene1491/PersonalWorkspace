@@ -40,7 +40,7 @@ Es gibt keinen automatischen Scan persönlicher Ordner, keine Desktop-/Dokumente
 
 ## Netzwerkzugriffe – vollständige Liste
 
-Diese App kontaktiert genau sechs externe, öffentliche, kostenlose Hosts, alle direkt aus dem Browser (kein eigener Server dazwischen):
+Diese App kontaktiert genau sieben externe, öffentliche, kostenlose Hosts, alle direkt aus dem Browser (kein eigener Server dazwischen):
 
 | Host | Wann | Gesendete Daten | Zweck |
 |---|---|---|---|
@@ -49,8 +49,14 @@ Diese App kontaktiert genau sechs externe, öffentliche, kostenlose Hosts, alle 
 | `api.open-meteo.com` | Direkt im Anschluss an die Geocoding-Antwort | Die zuvor aufgelösten Koordinaten | Aktuelles Wetter |
 | `api.frankfurter.app` | Bei Eingabe im Währungsrechner (Finanzen), mit kurzer Verzögerung nach dem Tippen | Betrag sowie Ausgangs-/Zielwährungscode (z. B. „EUR“, „USD“) | Wechselkurs-Umrechnung |
 | `date.nager.at` | Beim Öffnen von „Uni & Studium“ | Keine personenbezogenen Daten – fest auf Deutschland (`DE`) eingestellter Request | Nächster gesetzlicher Feiertag |
+| `api.alternative.me` | Beim Öffnen von „Finanzen“, sowie manuell per Aktualisieren-Button | Keine personenbezogenen Daten – reiner, parameterloser Request | Angst-&-Gier-Index (Kryptomarkt) |
+| `api.datamuse.com` | Bei Eingabe im Reim-/Wortfinder (Music Studio), mit kurzer Verzögerung nach dem Tippen | Das vom Nutzer eingegebene Wort | Reime/verwandte Wörter |
 
 Es werden **keine** Konto-, Zahlungs- oder Zugangsdaten übertragen, keine Cookies von Drittanbietern gesetzt, kein Tracking/Analytics eingebunden. Schlägt ein Abruf fehl (Netzwerkfehler, Rate-Limit, nicht erreichbar), zeigt die App einen expliziten Fehlerzustand mit Klartextmeldung – es wird nie ein erfundener Ersatzwert als echtes Ergebnis ausgegeben.
+
+## Browser-Benachrichtigungen (Preis-Alarme)
+
+Preis-Alarme (Finanzen) können optional eine native Browser-Notification auslösen, wenn ein gesetzter Schwellenwert erreicht wird. Das setzt eine ausdrückliche Erlaubnis über den Browser-eigenen Berechtigungsdialog voraus (Button „Browser-Benachrichtigungen erlauben“ – kein automatischer Request ohne Nutzeraktion); ohne diese Erlaubnis wird der Alarm weiterhin visuell in der App markiert, nur ohne System-Benachrichtigung. Das funktioniert ausschließlich, während dieser Tab geöffnet und mit aktuellen Marktdaten versorgt ist – es gibt keinen Hintergrunddienst, keinen Service-Worker-Push und keine Benachrichtigung bei geschlossenem Tab oder geschlossenem Browser. Das wird in der Oberfläche selbst ebenso klar benannt.
 
 ## Backup-Export/-Import
 
@@ -79,6 +85,9 @@ Alle App-eigenen Daten liegen ausschließlich im `localStorage` des verwendenden
 | `personal-workspace.accent.v1` | Gewählte Akzentfarbe |
 | `personal-workspace.location.v1` | Ort für Wetterdaten |
 | `personal-workspace.compact-mode.v1` | Dichte-Einstellung |
+| `personal-workspace.portfolio.v1` | Eigene Portfolio-Bestände (Asset, Menge, Kaufpreis) |
+| `personal-workspace.price-alerts.v1` | Konfigurierte Preis-Alarme |
+| `personal-workspace.quick-note.v1` | Inhalt des Schnellnotizen-Zettels |
 
 Genau diese Keys sind es auch, die der Backup-Export/-Import (siehe oben) sammelt bzw. zurückschreibt – definiert an einer einzigen Stelle in `src/services/backup.ts`, damit die Liste nicht divergieren kann. Löschen der Browserdaten für diese Seite entfernt alle genannten Inhalte vollständig und unwiderruflich, sofern zuvor kein Backup exportiert wurde.
 
