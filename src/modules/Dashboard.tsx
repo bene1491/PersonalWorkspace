@@ -1,15 +1,18 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, Clock3, Plus, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Clock3, Droplets, Plus, RefreshCw, ShieldCheck, Sparkles, Wind } from 'lucide-react'
 import { useWorkspace } from '../components/WorkspaceContext'
 import { InfoCard, Notice, Pill, SectionHeading } from '../components/ui'
 import { useMarketData } from '../hooks/useMarketData'
+import { useWeather } from '../hooks/useWeather'
+import { describeWeatherCode } from '../services/weather'
 
 const germanDate = new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
 const euro = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 })
 
-export function Dashboard() {
+export function Dashboard({ location }: { location: string }) {
   const { tasks, updateTask } = useWorkspace()
   const { data, status, error, refresh } = useMarketData()
+  const { data: weather, status: weatherStatus, error: weatherError, refresh: refreshWeather } = useWeather(location)
   const openTasks = tasks.filter((task) => task.status !== 'done')
   const completed = tasks.filter((task) => task.status === 'done').length
 
@@ -33,6 +36,19 @@ export function Dashboard() {
           <div><Pill tone="positive">Geschützt</Pill><h3>Lokaler Modus aktiv</h3><p>Keine Ordnerfreigaben, keine externen KI-Dienste und kein automatischer Dateizugriff.</p></div>
           <Link to="/einstellungen" className="subtle-link">Details <ArrowRight size={14} /></Link>
         </InfoCard>
+        <InfoCard className="weather-card">
+          <div className="weather-head"><Pill tone={weatherStatus === 'ready' ? 'positive' : weatherStatus === 'error' ? 'warning' : 'neutral'}>{weatherStatus === 'ready' ? 'Öffentliche Daten' : weatherStatus === 'error' ? 'Nicht verfügbar' : 'Lädt'}</Pill><button className="mini-icon" aria-label="Wetter aktualisieren" onClick={() => void refreshWeather()}><RefreshCw size={14} /></button></div>
+          {weatherStatus === 'ready' && weather && <>
+            <div className="weather-body">
+              <span className="weather-temp">{Math.round(weather.temperature)}°</span>
+              <div><strong>{describeWeatherCode(weather.weatherCode)}</strong><small>{weather.city}{weather.country ? `, ${weather.country}` : ''}</small></div>
+            </div>
+            <div className="weather-meta"><span><Droplets size={12} /> {Math.round(weather.humidity)} %</span><span><Wind size={12} /> {Math.round(weather.windSpeed)} km/h</span><span>Gefühlt {Math.round(weather.apparentTemperature)}°</span></div>
+          </>}
+          {weatherStatus === 'loading' && <p className="small-status">Wetterdaten für „{location}“ werden abgerufen …</p>}
+          {weatherStatus === 'error' && <p className="small-status">{weatherError}</p>}
+          <Link to="/einstellungen" className="subtle-link weather-source-link">Quelle: Open-Meteo · Ort ändern <ArrowRight size={14} /></Link>
+        </InfoCard>
       </div>
       <div className="content-grid dashboard-content-grid">
         <InfoCard title="Offene Aufgaben" className="span-7">
@@ -55,6 +71,7 @@ export function Dashboard() {
         <InfoCard title="Verbindungen" className="span-7">
           <div className="connection-grid">
             <div><span className="connection-dot ready" /><strong>Öffentliche Marktdaten</strong><small>Optional, browserseitig</small></div>
+            <div><span className="connection-dot ready" /><strong>Öffentliches Wetter</strong><small>Optional, browserseitig</small></div>
             <div><span className="connection-dot" /><strong>Dateien & Dokumente</strong><small>Nicht verbunden</small></div>
             <div><span className="connection-dot" /><strong>KI-Anbieter</strong><small>Nicht verbunden</small></div>
           </div>

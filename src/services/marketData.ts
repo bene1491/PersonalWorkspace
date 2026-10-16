@@ -1,7 +1,8 @@
 import type { MarketAsset } from '../types'
 
-const ENDPOINT =
-  'https://api.coingecko.com/api/v3/coins/markets?vs_currency=eur&ids=bitcoin,ethereum,solana&price_change_percentage=24h'
+const TRACKED_IDS = ['bitcoin', 'ethereum', 'solana', 'cardano', 'ripple', 'chainlink']
+
+const ENDPOINT = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=eur&ids=${TRACKED_IDS.join(',')}&price_change_percentage=24h&sparkline=true`
 
 interface CoinGeckoAsset {
   id: string
@@ -9,6 +10,10 @@ interface CoinGeckoAsset {
   name: string
   current_price: number
   price_change_percentage_24h: number | null
+  market_cap: number
+  high_24h: number
+  low_24h: number
+  sparkline_in_7d?: { price: number[] }
 }
 
 export async function getPublicMarketData(signal?: AbortSignal): Promise<MarketAsset[]> {
@@ -29,5 +34,9 @@ export async function getPublicMarketData(signal?: AbortSignal): Promise<MarketA
     change24h: asset.price_change_percentage_24h ?? 0,
     currency: 'EUR',
     updatedAt,
+    sparkline7d: asset.sparkline_in_7d?.price ?? [],
+    marketCap: asset.market_cap,
+    high24h: asset.high_24h,
+    low24h: asset.low_24h,
   }))
 }
