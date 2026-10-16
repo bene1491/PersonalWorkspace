@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AudioLines, ListMusic, Plus, SlidersHorizontal } from 'lucide-react'
 import { Metronome } from '../components/Metronome'
+import { RhymeFinder } from '../components/RhymeFinder'
 import { EmptyState, InfoCard, Notice, SectionHeading } from '../components/ui'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useUndoableRemove } from '../hooks/useUndoableRemove'
@@ -39,6 +40,9 @@ export function MusicStudio() {
       <Metronome onApplyBpm={applyBpmFromMetronome} />
       <InfoCard title="Produktion-Checkliste" className="span-6"><div className="checklist"><label><input type="checkbox" /> Arrangement prüfen</label><label><input type="checkbox" /> Vocal-Comp dokumentieren</label><label><input type="checkbox" /> Referenzvergleich machen</label></div></InfoCard>
     </div>
-    <div className="content-grid lower-grid"><InfoCard title="Mix & Master"><EmptyState title="Keine Versionen erfasst" icon={<SlidersHorizontal size={20} />}>Versionen können künftig als reine Metadaten gepflegt werden. Keine Audioexporte werden hier erzeugt oder überschrieben.</EmptyState></InfoCard></div>
+    <div className="content-grid lower-grid">
+      <RhymeFinder />
+      <InfoCard title="Mix & Master" className="span-6"><EmptyState title="Keine Versionen erfasst" icon={<SlidersHorizontal size={20} />}>Versionen können künftig als reine Metadaten gepflegt werden. Keine Audioexporte werden hier erzeugt oder überschrieben.</EmptyState></InfoCard>
+    </div>
   </>
 }

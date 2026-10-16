@@ -112,6 +112,8 @@ export function Settings({ theme, onToggleTheme, location, onLocationChange, acc
             <div><span className="connection-dot ready" /><span><strong>Open-Meteo (öffentlich)</strong><small>Optionaler, browserseitiger Wetterabruf für „{location}“.</small></span><Pill tone="positive">Verfügbar</Pill></div>
             <div><span className="connection-dot ready" /><span><strong>Frankfurter.app (öffentlich)</strong><small>EZB-Wechselkurse für den Währungsrechner.</small></span><Pill tone="positive">Verfügbar</Pill></div>
             <div><span className="connection-dot ready" /><span><strong>date.nager.at (öffentlich)</strong><small>Gesetzliche Feiertage für Deutschland.</small></span><Pill tone="positive">Verfügbar</Pill></div>
+            <div><span className="connection-dot ready" /><span><strong>Alternative.me (öffentlich)</strong><small>Angst-&-Gier-Index für den Kryptomarkt.</small></span><Pill tone="positive">Verfügbar</Pill></div>
+            <div><span className="connection-dot ready" /><span><strong>Datamuse (öffentlich)</strong><small>Reime und verwandte Wörter fürs Songwriting.</small></span><Pill tone="positive">Verfügbar</Pill></div>
             <div><span className="connection-dot" /><span><strong>Dateien & Dokumente</strong><small>Keine lokalen Verzeichnisse freigegeben.</small></span><Pill>Nicht verbunden</Pill></div>
             <div><span className="connection-dot" /><span><strong>KI-Anbieter</strong><small>Keine API-Keys und keine Gespräche übertragen.</small></span><Pill>Nicht verbunden</Pill></div>
           </div>
