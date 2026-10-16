@@ -76,6 +76,7 @@ Alle App-eigenen Daten liegen ausschließlich im `localStorage` des verwendenden
 | `personal-workspace.flashcards.v1` | Karteikarten (Uni & Studium) |
 | `personal-workspace.pomodoro-settings.v1` | Fokus-/Pausen-Dauer des Pomodoro-Timers |
 | `personal-workspace.theme.v1` | Dark/Light-Einstellung |
+| `personal-workspace.accent.v1` | Gewählte Akzentfarbe |
 | `personal-workspace.location.v1` | Ort für Wetterdaten |
 | `personal-workspace.compact-mode.v1` | Dichte-Einstellung |
 

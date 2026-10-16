@@ -28,11 +28,11 @@ function playChime() {
   }
 }
 
-export function PomodoroTimer() {
+export function PomodoroTimer({ autoStart = false }: { autoStart?: boolean }) {
   const [settings, setSettings] = useLocalStorage<PomodoroSettings>('personal-workspace.pomodoro-settings.v1', DEFAULT_SETTINGS)
   const [mode, setMode] = useState<'focus' | 'break'>('focus')
   const [secondsLeft, setSecondsLeft] = useState(settings.focusMinutes * 60)
-  const [isRunning, setIsRunning] = useState(false)
+  const [isRunning, setIsRunning] = useState(autoStart)
   const intervalRef = useRef<number | null>(null)
 
   useEffect(() => {

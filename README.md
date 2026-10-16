@@ -30,12 +30,14 @@ npm run lint      # oxlint über den gesamten Quellcode
 - **Music Studio** – lokale Songideen-Bibliothek, ein echtes Metronom mit Tap-Tempo (Web Audio API), Produktions-Checkliste, vorbereitete (inaktive) Audioexport-Analyse.
 - **Uni & Studium** – Kurse/Module als Beispieldaten, ein spielbares Karteikarten- & Quiz-System, ein Feiertage-Widget (echte Daten), PDF-Assistent als klar gekennzeichneter, noch nicht aktiver Platzhalter.
 - **Dateien & Dokumente** – Architektur für eine spätere, ausdrücklich freigegebene, rein lesende Dateiintegration; aktuell ohne jeden Dateisystemzugriff.
-- **Aufgaben & Planung** – vollständige, lokal gespeicherte Aufgabenverwaltung (anlegen, bearbeiten, filtern, erledigen, löschen) mit Listen- und Wochenansicht, einem Produktivitäts-Chart und einem eingebauten Pomodoro-/Fokus-Timer.
+- **Aufgaben & Planung** – vollständige, lokal gespeicherte Aufgabenverwaltung (anlegen, bearbeiten, filtern, erledigen, löschen) mit drei Ansichten – Liste, Woche und ein **Kanban-Board** mit Drag & Drop (plus tastaturbedienbaren Verschieben-Buttons) –, einem Produktivitäts-Chart und einem eingebauten Pomodoro-/Fokus-Timer.
 - **AI Lab** – lokale Prompt-Bibliothek; keine Verbindung zu einem KI-Anbieter, keine API-Keys, keine Datenübertragung.
 - **Automatisierungen** – Übersicht künftiger Workflows; nichts davon läuft tatsächlich.
-- **Einstellungen & Verbindungen** – Dark/Light-Mode, kompakte Dichte, Ort für Wetterdaten, JSON-Backup (Export/Import aller lokalen Daten), transparenter Datenquellen- und Datenschutzstatus.
+- **Einstellungen & Verbindungen** – Dark/Light-Mode, fünf wählbare Akzentfarben, kompakte Dichte, Ort für Wetterdaten, JSON-Backup (Export/Import aller lokalen Daten), transparenter Datenquellen- und Datenschutzstatus.
 
 Alle Module, die noch keine echte Datenquelle besitzen, kennzeichnen das explizit in der Oberfläche statt erfundene Daten als echt auszugeben. Lösch-Aktionen laufen über ein Toast-System mit **Rückgängig**-Option statt sofort endgültig zu sein.
+
+Die globale Suche (⌘K) ist zu einer echten Befehlspalette ausgebaut: Sie durchsucht nicht nur die Navigation und deine Aufgaben, sondern auch Karteikarten, Prompts, Songideen, Journal-Einträge und die Watchlist – und kann direkt Aktionen ausführen („Neue Aufgabe anlegen“, „Theme umschalten“, „Pomodoro-Timer starten“), per Maus oder komplett über die Pfeiltasten und Enter.
 
 Die App ist außerdem als **PWA installierbar** (eigenes App-Icon, läuft im eigenen Fenster ohne Browser-Chrome) – in Chrome/Edge über das Installieren-Symbol in der Adressleiste, auf dem iPhone über „Zum Home-Bildschirm“ in Safari.
 
@@ -59,6 +61,7 @@ Aktien/ETFs sind bewusst **nicht** integriert: Mir sind keine kostenlosen, API-K
 - Kein Zugriff auf dein Dateisystem, keine Ordnersuche, keine Indexierung persönlicher Dateien.
 - Keine Konten-, Broker- oder KI-Anbieter-Verbindung, keine API-Keys.
 - Alle App-Daten (Aufgaben, Watchlist, Journal, Prompts, Songideen, Karteikarten, Einstellungen) liegen ausschließlich im `localStorage` deines Browsers – du kannst sie jederzeit unter Einstellungen → Backup als JSON exportieren oder wiederherstellen.
+- Tastatur- und Screenreader-bedienbar: Befehlspalette und mobiles Menü verwalten den Fokus korrekt, alle Interaktionen (inklusive Kanban-Board) funktionieren ohne Maus, Text-Kontraste sind gegen WCAG AA geprüft.
 - Vollständige Details: [SECURITY.md](./SECURITY.md).
 
 ## Tech-Stack

@@ -6,6 +6,7 @@ import { ToastProvider } from './components/ToastContext'
 import { getTaskSearchItems, useWorkspace, WorkspaceProvider } from './components/WorkspaceContext'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { Dashboard } from './modules/Dashboard'
+import type { AccentId } from './types'
 
 const Finance = lazy(() => import('./modules/Finance').then((module) => ({ default: module.Finance })))
 const Tasks = lazy(() => import('./modules/Tasks').then((module) => ({ default: module.Tasks })))
@@ -24,8 +25,10 @@ function RouteLoading() {
 function WorkspaceApp() {
   const [theme, setTheme] = useLocalStorage<'dark' | 'light'>('personal-workspace.theme.v1', 'dark')
   const [location, setLocation] = useLocalStorage<string>('personal-workspace.location.v1', 'Berlin')
+  const [accent, setAccent] = useLocalStorage<AccentId>('personal-workspace.accent.v1', 'lavender')
   const { tasks } = useWorkspace()
   useEffect(() => { document.documentElement.dataset.theme = theme }, [theme])
+  useEffect(() => { document.documentElement.dataset.accent = accent }, [accent])
   const toggleTheme = () => setTheme((current) => current === 'dark' ? 'light' : 'dark')
 
   return <AppShell theme={theme} onToggleTheme={toggleTheme} taskItems={getTaskSearchItems(tasks)}>
@@ -41,7 +44,7 @@ function WorkspaceApp() {
           <Route path="/aufgaben" element={<Tasks />} />
           <Route path="/ai-lab" element={<AiLab />} />
           <Route path="/automatisierungen" element={<Automations />} />
-          <Route path="/einstellungen" element={<Settings theme={theme} onToggleTheme={toggleTheme} location={location} onLocationChange={setLocation} />} />
+          <Route path="/einstellungen" element={<Settings theme={theme} onToggleTheme={toggleTheme} location={location} onLocationChange={setLocation} accent={accent} onAccentChange={setAccent} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

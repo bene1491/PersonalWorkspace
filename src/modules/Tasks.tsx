@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Circle, ListFilter, Plus, Rows3, Trash2 } from 'lucide-react'
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Circle, Columns3, ListFilter, Plus, Rows3, Trash2 } from 'lucide-react'
 import { PomodoroTimer } from '../components/PomodoroTimer'
 import { useWorkspace } from '../components/WorkspaceContext'
 import { InfoCard, Pill, SectionHeading } from '../components/ui'
@@ -98,10 +99,81 @@ function WeekView({ tasks, updateTask }: { tasks: Task[]; updateTask: (id: strin
   )
 }
 
+const STATUS_COLUMNS: { status: TaskStatus; label: string }[] = [
+  { status: 'open', label: 'Offen' },
+  { status: 'in-progress', label: 'In Arbeit' },
+  { status: 'done', label: 'Erledigt' },
+]
+
+function BoardView({ tasks, updateTask, deleteTask }: { tasks: Task[]; updateTask: (id: string, patch: Partial<Pick<Task, 'status'>>) => void; deleteTask: (id: string) => void }) {
+  const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null)
+
+  return (
+    <div className="board-grid">
+      {STATUS_COLUMNS.map((column, columnIndex) => {
+        const columnTasks = tasks.filter((task) => task.status === column.status)
+        return (
+          <div
+            key={column.status}
+            className={`board-column ${dragOverStatus === column.status ? 'is-drag-over' : ''}`}
+            onDragOver={(event) => { event.preventDefault(); setDragOverStatus(column.status) }}
+            onDragLeave={() => setDragOverStatus((current) => (current === column.status ? null : current))}
+            onDrop={(event) => {
+              event.preventDefault()
+              const id = event.dataTransfer.getData('text/plain')
+              if (id) updateTask(id, { status: column.status })
+              setDragOverStatus(null)
+            }}
+          >
+            <div className="board-column-head"><strong>{column.label}</strong><span>{columnTasks.length}</span></div>
+            <div className="board-column-body">
+              {columnTasks.length ? columnTasks.map((task) => (
+                <article
+                  key={task.id}
+                  className="board-card"
+                  draggable
+                  onDragStart={(event) => { event.dataTransfer.setData('text/plain', task.id); event.dataTransfer.effectAllowed = 'move' }}
+                >
+                  <div className="board-card-head">
+                    <strong>{task.title}</strong>
+                    <button className="row-delete" onClick={() => deleteTask(task.id)} aria-label={`${task.title} löschen`}><Trash2 size={14} /></button>
+                  </div>
+                  <div className="board-card-meta">
+                    <Pill tone={task.priority === 'high' ? 'warning' : 'neutral'}>{task.priority === 'high' ? 'Hoch' : task.priority === 'medium' ? 'Mittel' : 'Niedrig'}</Pill>
+                    <span>{areaLabels[task.area]}</span>
+                  </div>
+                  {task.dueDate && <span className="due-date"><CalendarDays size={12} />{dueDateLabel.format(new Date(`${task.dueDate}T12:00:00`))}</span>}
+                  <div className="board-card-move">
+                    {columnIndex > 0 && <button onClick={() => updateTask(task.id, { status: STATUS_COLUMNS[columnIndex - 1].status })} aria-label={`${task.title} nach „${STATUS_COLUMNS[columnIndex - 1].label}“ verschieben`}><ChevronLeft size={13} /></button>}
+                    {columnIndex < STATUS_COLUMNS.length - 1 && <button onClick={() => updateTask(task.id, { status: STATUS_COLUMNS[columnIndex + 1].status })} aria-label={`${task.title} nach „${STATUS_COLUMNS[columnIndex + 1].label}“ verschieben`}><ChevronRight size={13} /></button>}
+                  </div>
+                </article>
+              )) : <p className="board-column-empty">Keine Aufgaben</p>}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function Tasks() {
   const { tasks, addTask, updateTask, deleteTask } = useWorkspace()
-  const [showForm, setShowForm] = useState(false)
-  const [view, setView] = useState<'list' | 'week'>('list')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [showForm, setShowForm] = useState(() => searchParams.get('new') === '1')
+  const [autoStartFocus] = useState(() => searchParams.get('focus') === '1')
+  const [view, setView] = useState<'list' | 'week' | 'board'>('list')
+
+  useEffect(() => {
+    if (searchParams.has('new') || searchParams.has('focus')) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('new')
+      next.delete('focus')
+      setSearchParams(next, { replace: true })
+    }
+    // Only meant to run once, right after the command palette navigates here with a query param.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [filter, setFilter] = useState<'all' | TaskStatus>('all')
   const [areaFilter, setAreaFilter] = useState<WorkspaceArea | 'all'>('all')
   const [title, setTitle] = useState('')
@@ -129,13 +201,16 @@ export function Tasks() {
     <div className="task-stat-grid"><InfoCard><small>Offen</small><strong>{tasks.filter((task) => task.status === 'open').length}</strong><span>bereit für deinen Fokus</span></InfoCard><InfoCard><small>In Arbeit</small><strong>{tasks.filter((task) => task.status === 'in-progress').length}</strong><span>aktive Vorhaben</span></InfoCard><InfoCard><small>Erledigt</small><strong>{tasks.filter((task) => task.status === 'done').length}</strong><span>im lokalen Verlauf</span></InfoCard></div>
     <div className="content-grid lower-grid">
       <ProductivityChart tasks={tasks} />
-      <PomodoroTimer />
+      <PomodoroTimer autoStart={autoStartFocus} />
     </div>
     <div className="view-toggle lower-grid">
       <button className={`view-toggle-button ${view === 'list' ? 'is-active' : ''}`} onClick={() => setView('list')}><ListFilter size={14} /> Liste</button>
       <button className={`view-toggle-button ${view === 'week' ? 'is-active' : ''}`} onClick={() => setView('week')}><Rows3 size={14} /> Woche</button>
+      <button className={`view-toggle-button ${view === 'board' ? 'is-active' : ''}`} onClick={() => setView('board')}><Columns3 size={14} /> Board</button>
     </div>
-    {view === 'week' ? <WeekView tasks={tasks} updateTask={updateTask} /> : (
+    {view === 'week' && <WeekView tasks={tasks} updateTask={updateTask} />}
+    {view === 'board' && <BoardView tasks={tasks} updateTask={updateTask} deleteTask={deleteTask} />}
+    {view === 'list' && (
       <InfoCard className="task-list-card">
         <div className="list-toolbar"><div className="filter-group"><ListFilter size={16} /><select value={filter} onChange={(event) => setFilter(event.target.value as 'all' | TaskStatus)} aria-label="Nach Status filtern"><option value="all">Alle Status</option><option value="open">Offen</option><option value="in-progress">In Arbeit</option><option value="done">Erledigt</option></select><select value={areaFilter} onChange={(event) => setAreaFilter(event.target.value as WorkspaceArea | 'all')} aria-label="Nach Bereich filtern"><option value="all">Alle Bereiche</option>{Object.entries(areaLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div><span>{visibleTasks.length} Einträge</span></div>
         {visibleTasks.length ? <div className="task-list">{visibleTasks.map((task) => <div className={`full-task-row ${task.status === 'done' ? 'is-done' : ''}`} key={task.id}>
